@@ -1,0 +1,73 @@
+{% if first_time_accessed %}
+    <script>
+        function createModal(delay, customerId) {
+            // Add modal container to the body if it's not in HTML
+            const modalContainer = document.createElement('div');
+            modalContainer.id = 'modalContainer';
+            modalContainer.style.display = 'none';
+            modalContainer.customerId = customerId;
+            document.body.appendChild(modalContainer);
+        
+            // if clicking outside the modal, go away
+            modalContainer.addEventListener('click', (e) => {
+                if (e.target === modalContainer) {
+                    modalContainer.style.display = 'none';
+                }
+            });
+        
+            // if escape key is pressed, go away
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modalContainer.style.display === 'flex') {
+                    modalContainer.style.display = 'none';
+                }
+            });
+        
+            // Set timer to show modal
+            setTimeout(async () => {
+                try {
+                    const contentResponse = await fetch(`${basePath}/api/v1/serve/optin-modal`);
+                    const content = await contentResponse.json();
+                    
+                    const scriptMatch = content.content.match(/<script>([\s\S]*?)<\/script>/);
+                    const scriptContent = scriptMatch ? scriptMatch[1] : '';
+                    
+                    modalContainer.innerHTML = content.content;
+        
+                    const script = document.createElement('script');
+                    script.textContent = `const customerId = "${cid}";\nconst basePath = "${basePath}";\n${scriptContent}`;
+                    document.body.appendChild(script);
+        
+                    modalContainer.style.display = 'flex';
+                } catch (error) {
+                    console.error('Error loading modal:', error);
+                }
+            }, delay);  
+        
+                // Add the modal styles
+                const modalStyles = `
+                #modalContainer {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                }
+            `;
+            
+            const styleSheet = document.createElement("style");
+            styleSheet.textContent = modalStyles;
+            document.head.appendChild(styleSheet);
+        }
+      
+      // Get Shopify order data
+      const customerId = {{ customer.id | json }};
+      const basePath = 'https://api.ourvibrant.com';
+      
+      createModal(2000, customerId);
+    </script>
+  {% endif %}
